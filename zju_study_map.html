@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>紫金港校区自习资源导航地图</title>
+  <style>
+    :root {
+      --ink: #20242a;
+      --muted: #65707c;
+      --line: #d8e0e7;
+      --paper: #fbfcfb;
+      --panel: #ffffff;
+      --soft: #eef5f0;
+      --green: #2f7d57;
+      --teal: #267f90;
+      --blue: #2c67a0;
+      --amber: #b56b18;
+      --rose: #b13f4f;
+      --shadow: 0 16px 42px rgba(32, 36, 42, 0.14);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: var(--ink);
+      background: #edf2ef;
+      line-height: 1.55;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      padding: 18px 24px 14px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .header-row > div:first-child {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 38px);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      max-width: 860px;
+      color: var(--muted);
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 18px;
+      width: 100%;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 18px 24px 24px;
+    }
+
+    .map-panel,
+    .side-panel {
+      min-width: 0;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+
+    .filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-btn {
+      min-height: 36px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-1px);
+      border-color: #9eb1bc;
+    }
+
+    .filter-btn.active {
+      color: #fff;
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .map-shell {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #dbeee4;
+      box-shadow: var(--shadow);
+    }
+
+    .map-stage {
+      position: relative;
+      aspect-ratio: 3508 / 2480;
+      min-height: 360px;
+    }
+
+    .map-stage img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      background: #dbeee4;
+    }
+
+    .marker {
+      --accent: var(--green);
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      transform: translate(-50%, -50%);
+      display: inline-grid;
+      grid-template-columns: 32px auto;
+      align-items: center;
+      gap: 7px;
+      max-width: min(220px, 22vw);
+      padding: 4px 9px 4px 4px;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.93);
+      box-shadow: 0 8px 18px rgba(32, 36, 42, 0.2);
+      cursor: pointer;
+      transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+      z-index: 2;
+    }
+
+    .marker:hover,
+    .marker:focus-visible,
+    .marker.selected {
+      transform: translate(-50%, -50%) scale(1.05);
+      box-shadow: 0 12px 24px rgba(32, 36, 42, 0.26);
+      outline: none;
+      z-index: 5;
+    }
+
+    .marker.hidden {
+      opacity: 0.22;
+      filter: grayscale(0.55);
+    }
+
+    .marker-number {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    .marker-label {
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .map-caption {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .side-panel {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 10px 26px rgba(32, 36, 42, 0.08);
+    }
+
+    .panel-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .panel-header p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .detail {
+      padding: 14px 16px 16px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 2px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--soft);
+      color: #315143;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 2px;
+    }
+
+    .field b {
+      color: #3d4650;
+      font-size: 13px;
+    }
+
+    .field span {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8faf8;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .route-list,
+    .space-list {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      margin: 0;
+      list-style: none;
+    }
+
+    .route-list li,
+    .space-list button {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .route-list li {
+      padding: 10px 11px;
+      color: #303943;
+      font-size: 14px;
+    }
+
+    .route-list b {
+      color: var(--rose);
+    }
+
+    .space-list button {
+      width: 100%;
+      min-height: 46px;
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .space-list button:hover,
+    .space-list button.active {
+      border-color: #879aa6;
+      background: #f4f8f6;
+    }
+
+    .mini-number {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .space-name {
+      overflow: hidden;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .space-fit {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 24px 26px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1120px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      .panel:first-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 760px) {
+      header {
+        padding: 16px;
+      }
+
+      .header-row {
+        display: grid;
+      }
+
+      main {
+        padding: 14px 12px 18px;
+      }
+
+      .side-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 4px;
+      }
+
+      .filter-btn {
+        flex: 0 0 auto;
+      }
+
+      .map-stage {
+        min-height: 280px;
+      }
+
+      .marker {
+        grid-template-columns: 28px;
+        gap: 0;
+        max-width: 34px;
+        padding: 3px;
+      }
+
+      .marker-number {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+      }
+
+      .marker-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      footer {
+        padding: 0 12px 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-row">
+        <div>
+          <h1>紫金港校区自习资源导航地图</h1>
+          <p class="subtitle">基于 331 份有效问卷与项目成果整理，帮助同学按学习任务、时段压力和空间特征快速选择自习地点。</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="map-panel" aria-label="交互地图">
+        <div class="filters" role="group" aria-label="按使用场景筛选">
+          <button class="filter-btn active" type="button" data-filter="all">全部空间</button>
+          <button class="filter-btn" type="button" data-filter="quiet">安静自习</button>
+          <button class="filter-btn" type="button" data-filter="long">长时自习</button>
+          <button class="filter-btn" type="button" data-filter="short">短时复习</button>
+          <button class="filter-btn" type="button" data-filter="group">小组讨论</button>
+          <button class="filter-btn" type="button" data-filter="night">夜间替代</button>
+          <button class="filter-btn" type="button" data-filter="exam">考试周避峰</button>
+        </div>
+
+        <div class="map-shell">
+          <div class="map-stage" id="mapStage">
+            <img src="紫金港校区手绘地图.png" alt="浙江大学紫金港校区手绘地图">
+          </div>
+          <div class="map-caption">
+            <span>点击编号查看空间详情；筛选后变淡的点位为非优先选择。</span>
+            <span>考试周核心高峰：13:00-17:00、18:00-22:30。</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="地图详情与清单">
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="detailTitle">图书馆自习区</h2>
+            <p id="detailHint">最常用的核心自习空间</p>
+          </div>
+          <div class="detail" id="detailPanel"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>高峰替代路线</h2>
+            <p>优先降低反复找座时间</p>
+          </div>
+          <ul class="route-list">
+            <li><b>非考试周下午</b>：优先尝试北教、西教、东教空教室，其次选择教学楼公共自习区。</li>
+            <li><b>非考试周晚上</b>：若图书馆无座，转向北教空教室、西教空教室和宿舍楼自习区。</li>
+            <li><b>考试周下午/晚上</b>：提前确认空教室与公共自习区，把教学楼空教室作为第一替代。</li>
+            <li><b>23:00 后</b>：只选择明确开放且安全可达的空间，不在开放状态不明区域久留。</li>
+          </ul>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>空间索引</h2>
+            <p>按编号定位到地图标记</p>
+          </div>
+          <ul class="space-list" id="spaceList"></ul>
+        </section>
+      </aside>
+    </main>
+
+    <footer>
+      数据来源：基于nsep自习空间资源调研数据
+    </footer>
+  </div>
+
+  <script>
+    const spaces = [
+      {
+        id: "library",
+        number: 1,
+        name: "图书馆自习区",
+        hint: "最常用的核心自习空间",
+        x: 55,
+        y: 51,
+        accent: "#2f7d57",
+        categories: ["quiet", "long", "exam"],
+        fit: "安静、长时、考试复习",
+        scene: "长时安静自习、考试复习、论文阅读。",
+        advantage: "安静、资料便利、学习氛围强，是问卷中最常用空间。",
+        caution: "高峰期座位紧张；需注意预约、离开释放和占座问题。",
+        quiet: "高",
+        discussion: "不适合讨论",
+        peak: "考试周下午和晚上建议提前准备 1-2 个教学楼替代点。",
+        evidence: "去过图书馆自习区 251 人，占 75.83%；常用空间综合得分 8.09。"
+      },
+      {
+        id: "north",
+        number: 2,
+        name: "北教空教室",
+        hint: "图书馆分流的高频替代点",
+        x: 46,
+        y: 32,
+        accent: "#2c67a0",
+        categories: ["quiet", "long", "exam", "short"],
+        fit: "替代、课后、考试周",
+        scene: "工作日或考试周替代自习、课后就近学习。",
+        advantage: "问卷中常用度高，适合作为图书馆无座时的分流点。",
+        caution: "需确认当天课程安排和可用教室，避免影响正常教学。",
+        quiet: "中高",
+        discussion: "低声可",
+        peak: "工作日下午和晚上均可作为优先转向点。",
+        evidence: "去过北教空教室 170 人，占 51.36%；常用空间综合得分 4.50。"
+      },
+      {
+        id: "west",
+        number: 3,
+        name: "西教空教室",
+        hint: "下午和晚上可用的替代空间",
+        x: 43,
+        y: 61,
+        accent: "#267f90",
+        categories: ["quiet", "long", "exam", "short"],
+        fit: "长时、避峰、分散",
+        scene: "下午和晚上替代空间、多人分散自习。",
+        advantage: "常用度较高，适合教学区附近学生。",
+        caution: "空教室信息需要及时更新，考试周需提前确认。",
+        quiet: "中高",
+        discussion: "低声可",
+        peak: "图书馆无座时可与北教、东教一起作为替代组合。",
+        evidence: "去过西教空教室 160 人，占 48.34%；常用空间综合得分 4.24。"
+      },
+      {
+        id: "east",
+        number: 4,
+        name: "东教空教室",
+        hint: "碎片时间和晚间替代点",
+        x: 67,
+        y: 66,
+        accent: "#b56b18",
+        categories: ["quiet", "long", "exam", "short"],
+        fit: "课间、晚上、替代",
+        scene: "课间短时自习、晚上替代自习。",
+        advantage: "与教学活动结合紧密，适合碎片时间使用。",
+        caution: "高峰期需提前确认空位和课程安排。",
+        quiet: "中高",
+        discussion: "低声可",
+        peak: "考试周晚上可作为教学楼替代空间之一。",
+        evidence: "去过东教空教室 163 人，占 49.24%；常用空间综合得分 3.73。"
+      },
+      {
+        id: "public",
+        number: 5,
+        name: "教学楼公共自习区",
+        hint: "短时任务和课间复习优先",
+        x: 58,
+        y: 60,
+        accent: "#7b5aa6",
+        categories: ["short", "exam"],
+        fit: "短时、临时、轻量",
+        scene: "短时自习、课间复习、轻量任务。",
+        advantage: "进入方便，适合临时使用和降低找座成本。",
+        caution: "噪音与人流可能较多，不宜默认作为高安静需求空间。",
+        quiet: "中",
+        discussion: "轻声可",
+        peak: "考试周可与空教室一起作为图书馆外的补充选择。",
+        evidence: "考试周首选教学楼公共自习区 53 人，占 16.72%。"
+      },
+      {
+        id: "dorm-north",
+        number: 6,
+        name: "宿舍楼自习区",
+        hint: "就近与夜间替代",
+        x: 76,
+        y: 44,
+        accent: "#b13f4f",
+        categories: ["night", "long", "group"],
+        fit: "夜间、就近、背诵",
+        scene: "夜间自习、低成本就近学习、背诵或有声学习。",
+        advantage: "距离近，适合晚间或临时学习。",
+        caution: "氛围和设施差异较大，应补充具体楼栋信息。",
+        quiet: "中",
+        discussion: "视楼栋而定",
+        peak: "23:00 后只选择明确开放且安全可达的宿舍楼学习空间。",
+        evidence: "考试周首选宿舍楼自习区 30 人，占 9.46%；刷夜需求较明显。"
+      },
+      {
+        id: "dorm-south",
+        number: 7,
+        name: "宿舍楼自习区",
+        hint: "南部宿舍片区补充点",
+        x: 68,
+        y: 70,
+        accent: "#b13f4f",
+        categories: ["night", "long", "group"],
+        fit: "夜间、就近、临时",
+        scene: "晚间就近自习、短时任务、背诵或低声学习。",
+        advantage: "减少夜间跨区移动，适合作为宿舍片区替代点。",
+        caution: "开放情况、桌椅和插座覆盖需按楼栋核验。",
+        quiet: "中",
+        discussion: "视楼栋而定",
+        peak: "作为图书馆和教学楼关闭或无座后的安全替代。",
+        evidence: "考试周存在一周 2-3 次刷夜需求 118 人，占 37.22%。"
+      },
+      {
+        id: "college",
+        number: 8,
+        name: "学院大楼自习区",
+        hint: "专业学习和论文写作",
+        x: 51,
+        y: 67,
+        accent: "#2f7d57",
+        categories: ["quiet", "long", "group"],
+        fit: "专业、论文、小组",
+        scene: "专业学习、论文写作、小组讨论。",
+        advantage: "靠近院系资源，适合同专业同学。",
+        caution: "开放规则可能因学院不同而不同。",
+        quiet: "中高",
+        discussion: "视区域而定",
+        peak: "周末下午可提前选择学院楼空间，减少在图书馆反复找座。",
+        evidence: "本点位依据项目成果包空间分区建议整理，需继续补充学院开放规则。"
+      },
+      {
+        id: "cafe",
+        number: 9,
+        name: "校内咖啡馆",
+        hint: "轻声讨论与轻量阅读",
+        x: 62,
+        y: 55,
+        accent: "#8d6f22",
+        categories: ["group", "short"],
+        fit: "讨论、阅读、短时",
+        scene: "轻声讨论、轻量阅读、短时任务。",
+        advantage: "环境相对舒适，适合非严格静音需求。",
+        caution: "消费、噪音和座位稳定性需考虑。",
+        quiet: "中低",
+        discussion: "适合轻声讨论",
+        peak: "不建议作为考试周长时静音自习的第一选择。",
+        evidence: "本点位依据项目成果包空间分区建议整理。"
+      }
+    ];
+
+    const filterNames = {
+      all: "全部空间",
+      quiet: "安静自习",
+      long: "长时自习",
+      short: "短时复习",
+      group: "小组讨论",
+      night: "夜间替代",
+      exam: "考试周避峰"
+    };
+
+    let selectedId = "library";
+    let activeFilter = "all";
+
+    const mapStage = document.querySelector("#mapStage");
+    const detailTitle = document.querySelector("#detailTitle");
+    const detailHint = document.querySelector("#detailHint");
+    const detailPanel = document.querySelector("#detailPanel");
+    const spaceList = document.querySelector("#spaceList");
+
+    function matchesFilter(space) {
+      return activeFilter === "all" || space.categories.includes(activeFilter);
+    }
+
+    function renderMarkers() {
+      const existing = mapStage.querySelectorAll(".marker");
+      existing.forEach((node) => node.remove());
+
+      spaces.forEach((space) => {
+        const marker = document.createElement("button");
+        marker.type = "button";
+        marker.className = "marker";
+        marker.style.setProperty("--x", `${space.x}%`);
+        marker.style.setProperty("--y", `${space.y}%`);
+        marker.style.setProperty("--accent", space.accent);
+        marker.dataset.id = space.id;
+        marker.setAttribute("aria-label", `查看${space.name}`);
+        marker.innerHTML = `
+          <span class="marker-number">${space.number}</span>
+          <span class="marker-label">${space.name}</span>
+        `;
+        marker.addEventListener("click", () => selectSpace(space.id));
+        mapStage.appendChild(marker);
+      });
+    }
+
+    function renderList() {
+      spaceList.innerHTML = spaces.map((space) => `
+        <li>
+          <button type="button" data-id="${space.id}" style="--accent:${space.accent}">
+            <span class="mini-number" style="background:${space.accent}">${space.number}</span>
+            <span class="space-name">${space.name}</span>
+            <span class="space-fit">${space.fit}</span>
+          </button>
+        </li>
+      `).join("");
+
+      spaceList.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => selectSpace(button.dataset.id));
+      });
+    }
+
+    function renderDetail(space) {
+      detailTitle.textContent = space.name;
+      detailHint.textContent = space.hint;
+      const categoryTags = space.categories.map((category) => `<span class="tag">${filterNames[category]}</span>`).join("");
+      detailPanel.innerHTML = `
+        <div class="tag-row">${categoryTags}</div>
+        <div class="detail-grid">
+          <div class="field"><b>推荐场景</b><span>${space.scene}</span></div>
+          <div class="field"><b>优点</b><span>${space.advantage}</span></div>
+          <div class="field"><b>注意事项</b><span>${space.caution}</span></div>
+          <div class="field"><b>高峰替代建议</b><span>${space.peak}</span></div>
+          <div class="field"><b>数据来源说明</b><span>${space.evidence}</span></div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><strong>${space.quiet}</strong><span>安静程度</span></div>
+          <div class="metric"><strong>${space.discussion}</strong><span>讨论适配</span></div>
+        </div>
+      `;
+    }
+
+    function updateActiveStates() {
+      document.querySelectorAll(".marker").forEach((marker) => {
+        const space = spaces.find((item) => item.id === marker.dataset.id);
+        marker.classList.toggle("selected", marker.dataset.id === selectedId);
+        marker.classList.toggle("hidden", !matchesFilter(space));
+      });
+
+      spaceList.querySelectorAll("button").forEach((button) => {
+        const space = spaces.find((item) => item.id === button.dataset.id);
+        button.classList.toggle("active", button.dataset.id === selectedId);
+        button.parentElement.style.display = matchesFilter(space) ? "" : "none";
+      });
+
+      document.querySelectorAll(".filter-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.filter === activeFilter);
+      });
+    }
+
+    function selectSpace(id) {
+      selectedId = id;
+      const space = spaces.find((item) => item.id === id);
+      renderDetail(space);
+      updateActiveStates();
+    }
+
+    document.querySelectorAll(".filter-btn").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeFilter = button.dataset.filter;
+        const current = spaces.find((space) => space.id === selectedId);
+        if (!matchesFilter(current)) {
+          const firstMatch = spaces.find(matchesFilter);
+          selectedId = firstMatch ? firstMatch.id : selectedId;
+          renderDetail(firstMatch || current);
+        }
+        updateActiveStates();
+      });
+    });
+
+    renderMarkers();
+    renderList();
+    selectSpace(selectedId);
+  </script>
+</body>
+</html>
